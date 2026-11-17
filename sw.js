@@ -353,7 +353,8 @@ self.addEventListener('notificationclick', event => {
       c.postMessage({ type: 'go', go });
       return;
     }
-    const w = await self.clients.openWindow('./');
-    if (w) setTimeout(() => { try { w.postMessage({ type: 'go', go }); } catch (e) {} }, 2000);
+    /* the target travels in the URL, so the app opens exactly that content on start */
+    const q = go ? '?nx=' + encodeURIComponent(JSON.stringify(go)) : '';
+    await self.clients.openWindow('./' + q);
   })());
 });
