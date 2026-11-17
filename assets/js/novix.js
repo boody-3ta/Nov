@@ -254,6 +254,25 @@
                 "You're up to date": 'أنت تستخدم أحدث نسخة',
                 "Couldn't check for updates. Check your connection.": 'تعذّر التحقق من التحديثات. تأكد من اتصالك بالإنترنت.'
             });
+            Object.assign(AR, {
+                'Done': 'منجزة',
+                'Left': 'متبقية',
+                'Sort by': 'ترتيب حسب',
+                'Difficulty: easy first': 'الصعوبة: الأسهل أولاً',
+                'Difficulty: hard first': 'الصعوبة: الأصعب أولاً',
+                'Newest first': 'الأحدث أولاً',
+                'Oldest first': 'الأقدم أولاً',
+                'Name (A–Z)': 'الاسم (أ–ي)',
+                'My order (manual)': 'ترتيبي (يدوي)',
+                'Sorted from easiest to hardest': 'مرتبة من الأسهل إلى الأصعب',
+                'Sorted from hardest to easiest': 'مرتبة من الأصعب إلى الأسهل',
+                'Newest tasks first': 'الأحدث أولاً',
+                'Oldest tasks first': 'الأقدم أولاً',
+                'Alphabetical order': 'ترتيب أبجدي',
+                'Use the arrows to arrange your tasks': 'استخدم الأسهم لترتيب مهامك',
+                'Move up': 'تحريك لأعلى',
+                'Move down': 'تحريك لأسفل'
+            });
             const seed = () => ({
                 tasks: [],
                 books: [],
@@ -458,8 +477,64 @@
                 qv = '';
             const mq = t => !qv || t.toLowerCase().includes(qv) || tr(t).includes(qv);
 
+            /* ---- Tasks: sorting, progress and manual order ----
+               The order of S.tasks is the "My order" list: arrows swap two tasks in it. */
+            const TK_CMP = {
+                diff: (a, b) => (ORD[a.p] - ORD[b.p]) || (a.id - b.id),
+                hard: (a, b) => (ORD[b.p] - ORD[a.p]) || (a.id - b.id),
+                new: (a, b) => b.id - a.id,
+                old: (a, b) => a.id - b.id,
+                az: (a, b) => tr(a.t).localeCompare(tr(b.t), undefined, {
+                    sensitivity: 'base'
+                })
+            };
+            const TK_HINT = {
+                diff: 'Sorted from easiest to hardest',
+                hard: 'Sorted from hardest to easiest',
+                new: 'Newest tasks first',
+                old: 'Oldest tasks first',
+                az: 'Alphabetical order',
+                manual: 'Use the arrows to arrange your tasks'
+            };
+            const ARROW = d => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="${d==='up'?'M6 14l6-6 6 6':'M6 10l6 6 6-6'}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+            let tkShownIds = [];
+
+            function taskItem(x, i, n, manual) {
+                return `<div class="task p-${x.p} ${x.d?'done':''}" data-id="${x.id}">` +
+                    `<button class="chk" role="checkbox" aria-checked="${!!x.d}" aria-label="${esc(tr(x.t))}">${ic('ck')}</button>` +
+                    `<div class="tk-main"><span class="t">${esc(tr(x.t))}</span>` +
+                    `<span class="tk-meta">${x.no?`<span class="tno">#${x.no}</span>`:''}<span class="pill ${x.p}">${tr(DIFF[x.p]||x.p)}</span></span></div>` +
+                    `<div class="tk-acts">` +
+                    (manual ? `<button class="tk-mv" data-mv="up" aria-label="${tr('Move up')}" ${i===0?'disabled':''}>${ARROW('up')}</button>` +
+                              `<button class="tk-mv" data-mv="down" aria-label="${tr('Move down')}" ${i===n-1?'disabled':''}>${ARROW('down')}</button>` : '') +
+                    `<button class="x" data-del="${x.id}" aria-label="${tr('Delete')}">${ic('x')}</button>` +
+                    `</div></div>`;
+            }
+
+            function renderTasks() {
+                const mode = S.taskSort && (TK_CMP[S.taskSort] || S.taskSort === 'manual') ? S.taskSort : 'diff';
+                const list = S.tasks.slice();
+                if (TK_CMP[mode]) list.sort(TK_CMP[mode]);
+                const shown = list.filter(x => mq(x.t) && (flt === 'all' || (flt === 'done') === !!x.d));
+                tkShownIds = shown.map(x => x.id);
+
+                const total = S.tasks.length,
+                    done = S.tasks.filter(x => x.d).length,
+                    pct = total ? Math.round(done / total * 100) : 0;
+                $('#tkDone').textContent = done;
+                $('#tkLeft').textContent = total - done;
+                $('#tkBar').style.width = pct + '%';
+                $('#tkPct').textContent = pct + '%';
+                $('#tsort').value = mode;
+                $('#tkHint').textContent = tr(TK_HINT[mode]);
+
+                const manual = mode === 'manual';
+                $('#allTasks').innerHTML = shown.map((x, i) => taskItem(x, i, shown.length, manual)).join('') ||
+                    `<p class="tk-empty">${tr(S.tasks.length?'Nothing found':'No tasks yet. Add your first task above.')}</p>`;
+            }
+
             function render() {
-                $('#allTasks').innerHTML = S.tasks.slice().sort((a, b) => (ORD[a.p] - ORD[b.p]) || (a.id - b.id)).filter(x => mq(x.t) && (flt === 'all' || (flt === 'done') === !!x.d)).map(x => taskRow(x, 1)).join('') || `<p style="color:var(--muted)">${tr(S.tasks.length?'Nothing found':'No tasks yet. Add your first task above.')}</p>`;
+                renderTasks();
                 const cnt = s => S.books.filter(b => s === 'All' || b.s === s).length;
                 $('#subj').innerHTML = ['All', ...S.subjects].map(s => `<button class="chip ${s===subj?'on':''}" data-s="${esc(s)}">${esc(s==='All'?tr('All subjects'):tr(s))} (${cnt(s)})</button>`).join('');
                 S.books.forEach((x, i) => {
@@ -672,6 +747,26 @@
                 save();
                 render();
             };
+            $('#tsort').onchange = e => {
+                S.taskSort = e.target.value;
+                SFX.tap();
+                save();
+                render();
+            };
+            document.addEventListener('click', e => {
+                const mv = e.target.closest('[data-mv]');
+                if (!mv) return;
+                const id = +mv.closest('.task').dataset.id,
+                    i = tkShownIds.indexOf(id),
+                    j = mv.dataset.mv === 'up' ? i - 1 : i + 1;
+                if (i < 0 || j < 0 || j >= tkShownIds.length) return;
+                const a = S.tasks.findIndex(t => t.id === id),
+                    b = S.tasks.findIndex(t => t.id === tkShownIds[j]);
+                [S.tasks[a], S.tasks[b]] = [S.tasks[b], S.tasks[a]];
+                SFX.tap();
+                save();
+                render();
+            });
             $('#nameIn').oninput = e => {
                 S.name = e.target.value.slice(0, 24);
                 syncProfile();
