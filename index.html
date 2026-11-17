@@ -156,12 +156,33 @@
                     </div>
                     <div class="banner-mark" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M25 51l16 16 35-39"/><circle cx="50" cy="50" r="39"/></svg></div>
                 </div>
-                <div class="card">
+
+                <div class="tk-stats">
+                    <div class="tk-stat"><b id="tkDone">0</b><span data-t>Done</span></div>
+                    <div class="tk-prog"><div class="tk-bar"><i id="tkBar"></i></div><small id="tkPct">0%</small></div>
+                    <div class="tk-stat"><b id="tkLeft">0</b><span data-t>Left</span></div>
+                </div>
+
+                <div class="card tk-add">
                     <form class="form" id="addF"><input id="tin" required maxlength="200" data-ph="Add a new task…" placeholder="Add a new task…" aria-label="New task"><select id="tpr" aria-label="Difficulty"><option value="Low" data-t>Easy</option><option value="Medium" selected data-t>Medium</option><option value="High" data-t>Hard</option></select><button class="btn" type="submit"><span data-t>Add</span></button></form>
                 </div>
-                <div class="chips" id="flt"><button class="chip on" data-f="all" data-t>All</button><button class="chip" data-f="act" data-t>Active</button><button class="chip" data-f="done" data-t>Done</button></div>
-                <p class="nt-hint" data-t>Sorted from easiest to hardest</p>
-                <div class="card">
+
+                <div class="tk-tools">
+                    <div class="chips" id="flt"><button class="chip on" data-f="all" data-t>All</button><button class="chip" data-f="act" data-t>Active</button><button class="chip" data-f="done" data-t>Done</button></div>
+                    <label class="tk-sort"><span data-t>Sort by</span>
+                        <select id="tsort" aria-label="Sort tasks">
+                            <option value="diff" data-t>Difficulty: easy first</option>
+                            <option value="hard" data-t>Difficulty: hard first</option>
+                            <option value="new" data-t>Newest first</option>
+                            <option value="old" data-t>Oldest first</option>
+                            <option value="az" data-t>Name (A–Z)</option>
+                            <option value="manual" data-t>My order (manual)</option>
+                        </select>
+                    </label>
+                </div>
+                <p class="nt-hint" id="tkHint" data-t>Sorted from easiest to hardest</p>
+
+                <div class="card tk-list">
                     <div id="allTasks"></div>
                 </div>
             </section>
