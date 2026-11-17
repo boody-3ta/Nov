@@ -2,7 +2,7 @@
    (1) the Smart Board section and (2) the annotation editor inside the PDF reader. */
 (function (W) {
   'use strict';
-  var VER = '1', loading = null;
+  var VER = '2', loading = null;
   var isAr = function () { return document.documentElement.lang === 'ar'; };
   var theme = function () { return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'; };
 
@@ -130,6 +130,7 @@ function paper(i,cv,w,p,fl){var x=cv.getContext('2d'),s=w/p.w,h=cv.height,W=cv.w
     return function (i, cv, w, p) {
       var prev = cancels.get(cv); if (prev) { try { prev.cancel(); } catch (e) {} }
       return doc.getPage(p.pdf).then(function (pg) {
+        if (cv.width < 3) return; /* the page already left the screen: do not waste time drawing it */
         var v1 = pg.getViewport({ scale: 1 });
         var vp = pg.getViewport({ scale: cv.width / v1.width });
         var x = cv.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, cv.width, cv.height);
@@ -163,7 +164,7 @@ function paper(i,cv,w,p,fl){var x=cv.getContext('2d'),s=w/p.w,h=cv.height,W=cv.w
     var key = 'pdf:' + o.fileId;
     var g = W.GN(root, {
       lang: isAr() ? 'ar' : 'en', title: o.title || '', pages: pages, items: items, fixed: 1, maxPx: 16e6,
-      base: pdfBaseFor(doc), exportName: (o.title || 'document').replace(/\.pdf$/i, '').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 60),
+      base: pdfBaseFor(doc), cancel: function (cv) { var t = cancels.get(cv); if (t) { try { t.cancel(); } catch (e) {} } }, exportName: (o.title || 'document').replace(/\.pdf$/i, '').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 60),
       save: function (it) { kvSet(key, { items: it, n: n }); },
       onBack: function () { o.onBack && o.onBack(); },
       onFs: function () { elFs(host); }
