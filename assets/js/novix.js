@@ -87,7 +87,8 @@
                 'Remove this repeating task?': 'حذف هذه المهمة المتكررة؟',
                 'Easy': 'سهلة',
                 'Hard': 'صعبة',
-                'Sorted from easiest to hardest': 'مرتبة من الأسهل إلى الأصعب',
+                'Drag the handle to reorder. Numbers update automatically': 'اسحب المقبض لإعادة ترتيب المهام، وتتحدث أرقامها تلقائياً',
+                'Drag to reorder': 'اسحب لإعادة الترتيب',
                 'Your Books & PDFs': 'كتبك وملفات PDF',
                 'Small Steps, Big Wins': 'خطوات صغيرة، إنجازات كبيرة',
                 'Plan Your Week': 'خطّط لأسبوعك',
@@ -257,21 +258,8 @@
             Object.assign(AR, {
                 'Done': 'منجزة',
                 'Left': 'متبقية',
-                'Sort by': 'ترتيب حسب',
-                'Difficulty: easy first': 'الصعوبة: الأسهل أولاً',
-                'Difficulty: hard first': 'الصعوبة: الأصعب أولاً',
-                'Newest first': 'الأحدث أولاً',
-                'Oldest first': 'الأقدم أولاً',
-                'Name (A–Z)': 'الاسم (أ–ي)',
-                'My order (manual)': 'ترتيبي (يدوي)',
-                'Sorted from easiest to hardest': 'مرتبة من الأسهل إلى الأصعب',
-                'Sorted from hardest to easiest': 'مرتبة من الأصعب إلى الأسهل',
-                'Newest tasks first': 'الأحدث أولاً',
-                'Oldest tasks first': 'الأقدم أولاً',
-                'Alphabetical order': 'ترتيب أبجدي',
-                'Use the arrows to arrange your tasks': 'استخدم الأسهم لترتيب مهامك',
-                'Move up': 'تحريك لأعلى',
-                'Move down': 'تحريك لأسفل'
+                'Drag the handle to reorder. Numbers update automatically': 'اسحب المقبض لإعادة ترتيب المهام، وتتحدث أرقامها تلقائياً',
+                'Drag to reorder': 'اسحب لإعادة الترتيب',
             });
             const seed = () => ({
                 tasks: [],
@@ -477,44 +465,43 @@
                 qv = '';
             const mq = t => !qv || t.toLowerCase().includes(qv) || tr(t).includes(qv);
 
-            /* ---- Tasks: sorting, progress and manual order ----
-               The order of S.tasks is the "My order" list: arrows swap two tasks in it. */
-            const TK_CMP = {
-                diff: (a, b) => (ORD[a.p] - ORD[b.p]) || (a.id - b.id),
-                hard: (a, b) => (ORD[b.p] - ORD[a.p]) || (a.id - b.id),
-                new: (a, b) => b.id - a.id,
-                old: (a, b) => a.id - b.id,
-                az: (a, b) => tr(a.t).localeCompare(tr(b.t), undefined, {
-                    sensitivity: 'base'
-                })
-            };
-            const TK_HINT = {
-                diff: 'Sorted from easiest to hardest',
-                hard: 'Sorted from hardest to easiest',
-                new: 'Newest tasks first',
-                old: 'Oldest tasks first',
-                az: 'Alphabetical order',
-                manual: 'Use the arrows to arrange your tasks'
-            };
-            const ARROW = d => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="${d==='up'?'M6 14l6-6 6 6':'M6 10l6 6 6-6'}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-            let tkShownIds = [];
+            /* ---- Tasks: the list order is the user's order (drag the handle to change it).
+               Numbers (#1, #2 …) are reassigned to follow that order. ---- */
+            const GRIP = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="6" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="6" r="1.6" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="18" r="1.6" fill="currentColor" stroke="none"/></svg>';
+            let tkShownIds = [],
+                tkDrag = null;
 
-            function taskItem(x, i, n, manual) {
+            function taskItem(x) {
                 return `<div class="task p-${x.p} ${x.d?'done':''}" data-id="${x.id}">` +
+                    `<button class="tk-grip" aria-label="${tr('Drag to reorder')}" title="${tr('Drag to reorder')}">${GRIP}</button>` +
                     `<button class="chk" role="checkbox" aria-checked="${!!x.d}" aria-label="${esc(tr(x.t))}">${ic('ck')}</button>` +
                     `<div class="tk-main"><span class="t">${esc(tr(x.t))}</span>` +
                     `<span class="tk-meta">${x.no?`<span class="tno">#${x.no}</span>`:''}<span class="pill ${x.p}">${tr(DIFF[x.p]||x.p)}</span></span></div>` +
-                    `<div class="tk-acts">` +
-                    (manual ? `<button class="tk-mv" data-mv="up" aria-label="${tr('Move up')}" ${i===0?'disabled':''}>${ARROW('up')}</button>` +
-                              `<button class="tk-mv" data-mv="down" aria-label="${tr('Move down')}" ${i===n-1?'disabled':''}>${ARROW('down')}</button>` : '') +
-                    `<button class="x" data-del="${x.id}" aria-label="${tr('Delete')}">${ic('x')}</button>` +
-                    `</div></div>`;
+                    `<div class="tk-acts"><button class="x" data-del="${x.id}" aria-label="${tr('Delete')}">${ic('x')}</button></div>` +
+                    `</div>`;
+            }
+
+            /* numbers always follow the order of the list */
+            function tkRenumber() {
+                S.tasks.forEach((x, i) => x.no = i + 1);
+            }
+
+            /* moves the task with id `id` so that it lands just before/after the task `over` */
+            function tkPlace(id, over) {
+                const from = S.tasks.findIndex(t => t.id === id),
+                    fromShown = tkShownIds.indexOf(id),
+                    toShown = tkShownIds.indexOf(over);
+                if (from < 0 || over == null || id === over) return false;
+                const movingDown = toShown > fromShown,
+                    [item] = S.tasks.splice(from, 1),
+                    to = S.tasks.findIndex(t => t.id === over);
+                S.tasks.splice(movingDown ? to + 1 : to, 0, item);
+                tkRenumber();
+                return true;
             }
 
             function renderTasks() {
-                const mode = S.taskSort && (TK_CMP[S.taskSort] || S.taskSort === 'manual') ? S.taskSort : 'diff';
                 const list = S.tasks.slice();
-                if (TK_CMP[mode]) list.sort(TK_CMP[mode]);
                 const shown = list.filter(x => mq(x.t) && (flt === 'all' || (flt === 'done') === !!x.d));
                 tkShownIds = shown.map(x => x.id);
 
@@ -525,13 +512,12 @@
                 $('#tkLeft').textContent = total - done;
                 $('#tkBar').style.width = pct + '%';
                 $('#tkPct').textContent = pct + '%';
-                $('#tsort').value = mode;
-                $('#tkHint').textContent = tr(TK_HINT[mode]);
 
-                const manual = mode === 'manual';
-                $('#allTasks').innerHTML = shown.map((x, i) => taskItem(x, i, shown.length, manual)).join('') ||
+                $('#allTasks').innerHTML = shown.map(taskItem).join('') ||
                     `<p class="tk-empty">${tr(S.tasks.length?'Nothing found':'No tasks yet. Add your first task above.')}</p>`;
             }
+
+
 
             function render() {
                 renderTasks();
@@ -747,25 +733,61 @@
                 save();
                 render();
             };
-            $('#tsort').onchange = e => {
-                S.taskSort = e.target.value;
-                SFX.tap();
-                save();
-                render();
+            /* drag the ⋮⋮ handle to reorder tasks (pointer events: mouse, pen and touch) */
+            const tkClear = () => {
+                document.querySelectorAll('#allTasks .tk-drag,#allTasks .tk-over').forEach(r => r.classList.remove('tk-drag', 'tk-over'))
             };
-            document.addEventListener('click', e => {
-                const mv = e.target.closest('[data-mv]');
-                if (!mv) return;
-                const id = +mv.closest('.task').dataset.id,
+            document.addEventListener('pointerdown', e => {
+                const g = e.target.closest && e.target.closest('.tk-grip');
+                if (!g) return;
+                e.preventDefault();
+                const row = g.closest('.task');
+                tkDrag = {
+                    id: +row.dataset.id,
+                    over: null
+                };
+                row.classList.add('tk-drag');
+                try {
+                    g.setPointerCapture(e.pointerId)
+                } catch (x) {}
+            });
+            document.addEventListener('pointermove', e => {
+                if (!tkDrag) return;
+                const el = document.elementFromPoint(e.clientX, e.clientY),
+                    r = el && el.closest && el.closest('#allTasks .task'),
+                    over = r && +r.dataset.id !== tkDrag.id ? +r.dataset.id : null;
+                if (over === tkDrag.over) return;
+                if (tkDrag.over != null) document.querySelector('#allTasks .task[data-id="' + tkDrag.over + '"]')?.classList.remove('tk-over');
+                tkDrag.over = over;
+                if (over != null) r.classList.add('tk-over');
+            });
+            const tkEnd = e => {
+                if (!tkDrag) return;
+                const d = tkDrag;
+                tkDrag = null;
+                tkClear();
+                if (e.type === 'pointerup' && d.over != null && tkPlace(d.id, d.over)) {
+                    SFX.tap();
+                    save();
+                    render()
+                }
+            };
+            document.addEventListener('pointerup', tkEnd);
+            document.addEventListener('pointercancel', tkEnd);
+            /* keyboard: focus a handle and press ↑ / ↓ */
+            document.addEventListener('keydown', e => {
+                const g = e.target.closest && e.target.closest('.tk-grip');
+                if (!g || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+                e.preventDefault();
+                const id = +g.closest('.task').dataset.id,
                     i = tkShownIds.indexOf(id),
-                    j = mv.dataset.mv === 'up' ? i - 1 : i + 1;
+                    j = e.key === 'ArrowUp' ? i - 1 : i + 1;
                 if (i < 0 || j < 0 || j >= tkShownIds.length) return;
-                const a = S.tasks.findIndex(t => t.id === id),
-                    b = S.tasks.findIndex(t => t.id === tkShownIds[j]);
-                [S.tasks[a], S.tasks[b]] = [S.tasks[b], S.tasks[a]];
-                SFX.tap();
-                save();
-                render();
+                if (tkPlace(id, tkShownIds[j])) {
+                    save();
+                    render();
+                    document.querySelector('#allTasks .task[data-id="' + id + '"] .tk-grip')?.focus()
+                }
             });
             $('#nameIn').oninput = e => {
                 S.name = e.target.value.slice(0, 24);
@@ -2649,12 +2671,34 @@
             document.addEventListener('keydown', e => {
                 if (e.key === 'Escape') np.hidden = true
             });
+            /* opens the content a notification refers to:
+               - task reminders → the task list, with that task highlighted
+               - timetable reminders → the event itself (its editor), on its day
+               - a daily summary (no event) → the timetable on that day */
+            function hlTask(id) {
+                const el = id ? document.querySelector('#allTasks .task[data-id="' + id + '"]') : null;
+                if (!el) return;
+                try {
+                    el.scrollIntoView({
+                        block: 'center',
+                        behavior: 'smooth'
+                    })
+                } catch (x) {}
+                el.classList.remove('nx-hl');
+                void el.offsetWidth;
+                el.classList.add('nx-hl');
+                setTimeout(() => el.classList.remove('nx-hl'), 3800)
+            }
             function goNotif(go) {
-                if (go && go.tasks) {
-                    np.hidden = true;
-                    location.hash = '#/tasks';
+                np.hidden = true;
+                if (!go) return;
+                if (go.tasks) {
+                    if (location.hash !== '#/tasks') location.hash = '#/tasks';
+                    else route();
+                    setTimeout(() => hlTask(go.task), 350);
                     return
                 }
+                const ev = go.id != null ? S.tt.find(x => x.id === go.id) : null;
                 try {
                     const k = (go && go.k) || ymd(new Date()),
                         d = new Date(k + 'T00:00:00');
@@ -2665,7 +2709,6 @@
                     }
                     renderTT()
                 } catch (x) {}
-                np.hidden = true;
                 if (location.hash !== '#/timetable') location.hash = '#/timetable';
                 else route();
                 const id = go && go.id;
@@ -2684,7 +2727,9 @@
                     void el.offsetWidth;
                     el.classList.add('nx-hl');
                     setTimeout(() => el.classList.remove('nx-hl'), 3800)
-                }, 280)
+                }, 280);
+                /* a reminder for one event opens that event so its content is shown */
+                if (ev) setTimeout(() => openTT(ev.id), 420)
             }
             document.addEventListener('click', e => {
                 const ni = e.target.closest && e.target.closest('.np-i[data-nid2]');
@@ -3078,6 +3123,16 @@
                 navigator.serviceWorker.addEventListener('message', e => {
                     if (e.data && e.data.type === 'go') goNotif(e.data.go)
                 });
+                try {
+                    const u = new URL(location.href),
+                        raw = u.searchParams.get('nx');
+                    if (raw) {
+                        u.searchParams.delete('nx');
+                        history.replaceState(null, '', u.pathname + u.search + u.hash);
+                        const g = JSON.parse(raw);
+                        if (g && (g.tasks || g.k || g.id != null)) setTimeout(() => goNotif(g), 1200)
+                    }
+                } catch (x) {}
                 try {
                     navigator.permissions.query({
                         name: 'notifications'
