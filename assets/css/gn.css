@@ -312,3 +312,6 @@
 .gn-cp-btns{display:flex;gap:8px}
 .gn-cp-btns button{flex:1;height:38px;border-radius:10px;border:1px solid var(--bd);background:transparent;color:inherit;font:inherit;font-weight:600;cursor:pointer}
 .gn-cp-btns .pri{background:var(--ac);border-color:var(--ac);color:#fff}
+
+/* small picture of a page, shown instantly while its real picture is being drawn */
+.gn-pg .gth{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;user-select:none;-webkit-user-drag:none}
