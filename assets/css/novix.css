@@ -9055,3 +9055,211 @@ html.kb-open .nm-pop {
     opacity: .75;
     white-space: nowrap
 }
+
+/* ================= tasks section — redesign (stats, sort bar, difficulty rows, manual order) ================= */
+#v-tasks .tk-stats {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 18px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    border-radius: 18px;
+    background: var(--card);
+    border: 1px solid var(--line)
+}
+
+#v-tasks .tk-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 64px
+}
+
+#v-tasks .tk-stat b {
+    font: 800 24px/1.1 Manrope, Alexandria, sans-serif;
+    color: var(--text, inherit)
+}
+
+#v-tasks .tk-stat span {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted)
+}
+
+#v-tasks .tk-prog {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0
+}
+
+#v-tasks .tk-bar {
+    flex: 1;
+    height: 10px;
+    border-radius: 99px;
+    background: color-mix(in srgb, var(--acc, #2fae88) 14%, transparent);
+    overflow: hidden
+}
+
+#v-tasks .tk-bar i {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #2fae88, #7fd0dc);
+    transition: width .45s ease
+}
+
+#v-tasks .tk-prog small {
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--muted);
+    min-width: 40px;
+    text-align: end
+}
+
+#v-tasks .tk-add {
+    margin-bottom: 14px
+}
+
+#v-tasks .tk-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 6px
+}
+
+#v-tasks .tk-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted)
+}
+
+#v-tasks .tk-sort select {
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    font-weight: 700;
+    font-size: 13px;
+    color: inherit;
+    max-width: 230px
+}
+
+#v-tasks .tk-list {
+    padding: 6px 16px
+}
+
+#v-tasks .task {
+    position: relative;
+    padding: 14px 6px 14px 14px;
+    transition: background .2s, opacity .2s
+}
+
+#v-tasks .task::before {
+    content: "";
+    position: absolute;
+    inset-block: 10px;
+    inset-inline-start: 0;
+    width: 4px;
+    border-radius: 4px;
+    background: #9fe3cc
+}
+
+#v-tasks .task.p-Medium::before {
+    background: #f5b841
+}
+
+#v-tasks .task.p-High::before {
+    background: #e5484d
+}
+
+#v-tasks .task.done::before {
+    opacity: .35
+}
+
+#v-tasks .tk-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px
+}
+
+#v-tasks .tk-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap
+}
+
+#v-tasks .tk-meta .pill {
+    font-size: 11px;
+    padding: 3px 10px
+}
+
+#v-tasks .tk-acts {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: none
+}
+
+#v-tasks .tk-mv {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    cursor: pointer
+}
+
+#v-tasks .tk-mv .i {
+    width: 16px;
+    height: 16px
+}
+
+#v-tasks .tk-mv:hover:not(:disabled) {
+    color: inherit;
+    border-color: #2fae88
+}
+
+#v-tasks .tk-mv:disabled {
+    opacity: .3;
+    cursor: default
+}
+
+#v-tasks .tk-empty {
+    color: var(--muted);
+    padding: 18px 4px;
+    text-align: center
+}
+
+@media (max-width: 560px) {
+    #v-tasks .tk-stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px
+    }
+    #v-tasks .tk-prog {
+        grid-column: 1 / -1;
+        order: -1
+    }
+    #v-tasks .tk-sort select {
+        max-width: 100%
+    }
+}
+
+:root[data-theme="dark"] #v-tasks .tk-sort select,
+:root[data-theme="dark"] #v-tasks .tk-mv {
+    background: rgba(255, 255, 255, .04)
+}
